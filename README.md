@@ -1,6 +1,6 @@
 # UL Vacant Rooms Display
 
-This program allows you to choose a building in UL (currently only CS building), a day and a time. It will then output which rooms are vacant over the following 3 hours. This can be helpful if you want to go to a room to study, or work on project with your mates.
+This program allows you to choose a building in UL (currently only CS building), a day and a time. It will then output which rooms are vacant over the following 3 hours. This can be helpful if you want to go to a room to study, or work on a project with your mates.
 <br>
 Gathers info from [UL Timetable Website](https://www.timetable.ul.ie/) using **Selenium**
 Has a GUI built in **Qt** with **PySide6**
