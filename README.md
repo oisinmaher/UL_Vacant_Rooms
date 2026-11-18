@@ -1,11 +1,59 @@
 # UL Vacant Rooms Display
 
-This program allows you to choose a building in UL (currently only CS building), a day and a time. It will then output which rooms are vacant over the following 3 hours. This can be helpful if you want to go to a room to study, or work on a project with your mates.
-<br>
-Gathers info from [UL Timetable Website](https://www.timetable.ul.ie/) using **Selenium**
-Has a GUI built in **Qt** with **PySide6**
-After scraping info, it is saved to a .pkl file using **Pickle** to prevent having to scrape info each use
+Pick a building (currently CS building), a day and a time — the app shows
+which rooms are vacant over the following 3 hours. Handy when you need a room
+to study or work on a project with your mates.
 
-Install Selenium and PySide6 with `pip install -r requirements.txt`
+Info is gathered from the [UL Timetable Website](https://www.timetable.ul.ie/)
+using **Selenium**, then cached in a `.pkl` file with **Pickle** so there is no
+need to scrape on every use.
 
-<img width="1920" height="1080" alt="vacant room showc" src="https://github.com/user-attachments/assets/69a31a73-baae-4efd-b7b4-f93b8cf43855" />
+## GUI
+
+Built with **Qt / PySide6**. A clean, single-window layout:
+
+- **Header form** — building, day and time pickers plus a
+  *Check availability* button.
+- **Summary banner** — highlights the rooms free for the *entire* chosen
+  window (green) or warns that none are (red).
+- **Availability table** — one row per room, one column per hour, with each
+  cell marked **Free** (green) or **Booked** (red). Rooms free for the whole
+  window get a ★ and a highlighted row.
+
+Run it with:
+
+```sh
+python main.py
+```
+
+## CLI
+
+The same data layer can be used without the GUI:
+
+```sh
+python cli.py "Computer Science Building" Monday 10:00
+```
+
+## Project layout
+
+| File              | Purpose                                              |
+|-------------------|------------------------------------------------------|
+| `main.py`         | GUI entry point (`python main.py`)                   |
+| `ui_display.py`   | PySide6 window, form, banner and results table       |
+| `scrape_info.py`  | Selenium scraping + cached pickle + `query()` data   |
+| `cli.py`          | Text-only fallback for the same data                 |
+| `tests/`          | pytest coverage of the data layer (no Qt needed)     |
+| `cs_building_schedule.pkl` | Cached CS building timetable         |
+
+## Setup
+
+```sh
+pip install -r requirements.txt   # selenium + PySide6
+python main.py
+```
+
+## Tests
+
+```sh
+python -m pytest tests/ -q
+```
