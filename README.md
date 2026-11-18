@@ -1,11 +1,29 @@
 # UL Vacant Rooms Display
 
-This program allows you to choose a building in UL (currently only CS building), a day and a time. It will then output which rooms are vacant over the following 3 hours. This can be helpful if you want to go to a room to study, or work on a project with your mates.
-<br>
-Gathers info from [UL Timetable Website](https://www.timetable.ul.ie/) using **Selenium**
-Has a GUI built in **Qt** with **PySide6**
-After scraping info, it is saved to a .pkl file using **Pickle** to prevent having to scrape info each use
+This program lets you choose a building in UL (currently only the CS building), a day and a start time. It then shows which rooms are vacant over the following 3 hours — handy if you want to find a room to study or work on a project with your mates.
 
-Install Selenium and PySide6 with `pip install -r requirements.txt`
+## Features
 
-<img width="1920" height="1080" alt="vacant room showc" src="https://github.com/user-attachments/assets/69a31a73-baae-4efd-b7b4-f93b8cf43855" />
+- **Clean Qt GUI** (PySide6): labelled pickers for building, day and start time
+- **Results table** with the vacant rooms for each of the next three hours
+- **Highlighted summary** of rooms that are free for the *entire* period
+- **Refresh Data** button to re-scrape the timetable from the website
+- Status-bar messages for errors and busy states
+
+## How it works
+
+- Gathers info from the [UL Timetable Website](https://www.timetable.ul.ie/) using **Selenium** (only needed on first run / refresh)
+- Caches the scraped schedule in a `.pkl` file via **Pickle** so subsequent runs are instant
+- `scrape_info.py` produces a plain structured report; `ui_display.py` renders it, so the logic is testable without a display
+
+## Setup & usage
+
+```bash
+pip install -r requirements.txt
+python main.py
+```
+
+1. Choose a **Building**, **Day** and **Start time**
+2. Press **Show Vacant Rooms**
+3. Read the table (per-hour vacancies) and the summary (rooms free the whole period)
+4. Use **Refresh Data** if the timetable has changed (re-scrapes the website)

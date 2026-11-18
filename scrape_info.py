@@ -1,20 +1,34 @@
 import os
-
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
 import pickle
-import time
 
 
 class ScrapeInfo():
+    """Loads (or scrapes) the weekly room schedule and reports vacancies.
+
+    All data returned by `run()` is plain structured data; rendering is the
+    GUI's job.
+    """
+
+    DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    TIMES = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"]
+
     def __init__(self):
         self.building_rooms = {"Computer Science Building": ["CS1044", "CS1045", "CS2044", "CS2046", "CS3005A", "CS3005B", "CS3004B"]}
         self.building_to_pkl = {"Computer Science Building": "cs_building_schedule.pkl"}
 
     def get_room_timetable(self, room_number):
+        """Scrape one room's weekly timetable from the UL timetable website.
+
+        Returns a 5x9 boolean matrix (day x hour) where True means vacant.
+        Selenium is imported lazily so the rest of the module works without it.
+        """
+        import time
+        from selenium import webdriver
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.common.keys import Keys
+
         room_number = room_number.upper()
         driver = webdriver.Chrome()
         driver.get("https://www.timetable.ul.ie/UA/Default.aspx")
@@ -25,7 +39,6 @@ class ScrapeInfo():
         )
         cookies.click()
         driver.get("https://www.timetable.ul.ie/UA/RoomTimetable.aspx")
-
 
         dropdown = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, '//*[@id="select2-HeaderContent_RoomDropdown-container"]'))
@@ -77,37 +90,48 @@ class ScrapeInfo():
                     if vacant[i][j]:
                         vacant_rooms[(i, j)].append(room)
 
-        with open('cs_building_schedule.pkl', 'wb') as f:
+        with open(self.building_to_pkl[building], 'wb') as f:
             pickle.dump(vacant_rooms, f)
         return vacant_rooms
 
-    def run(self, building, day, time):
-        vacant_rooms = self.retrieve(building)
-        if not vacant_rooms:
-            print("No previous data, scraping info")
-            vacant_rooms = self.build(building)
+    def run(self, building, day, time, force_scrape=False):
+        """Return a structured report of vacant rooms for the given day/time.
+
+        Result shape:
+            {
+                "building": str,
+                "day": str,
+                "slots": [(time_str, [room, ...]), ...],   # next 3 hours
+                "fully_free": [room, ...],                  # free for all 3 hours
+            }
+        """
+        vacant_rooms = None if force_scrape else self.retrieve(building)
+        if vacant_rooms:
+            print("Info retrieved from cache")
         else:
-            print("Info retrieved from database")
+            print("No cached data, scraping info")
+            vacant_rooms = self.build(building)
 
+        d = self.DAYS.index(day)
+        t = self.TIMES.index(time)
+        t_last = min(9, t + 3)
 
-        days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-        times = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"]
-
-        d = days.index(day)
-        t = times.index(time)
-        t_last = min(9, t+3)
-
-        fully_free = set(vacant_rooms[(d, t_last)])
-        rooms_vacant = f"{days[d]}:\n"
+        if t_last == 9:
+            # No slot data beyond the last hour; start from all rooms
+            # and let each listed slot narrow the set down.
+            fully_free = set(self.building_rooms[building])
+        else:
+            fully_free = set(vacant_rooms[(d, t_last)])
+        slots = []
         while t < t_last:
-            rooms_vacant += f"{times[t]}:\n"
-            fully_free_temp = set()
-            for room in vacant_rooms[(d, t)]:
-                if room in fully_free:
-                    fully_free_temp.add(room)
-
-            fully_free = fully_free_temp
-            rooms_vacant += f"{vacant_rooms[(d, t)]}\n"
+            current = sorted(vacant_rooms[(d, t)])
+            slots.append((self.TIMES[t], current))
+            fully_free = {room for room in current if room in fully_free}
             t += 1
-        rooms_vacant += f"Rooms available for next 3 hours\n{fully_free}:\n"
-        return rooms_vacant
+
+        return {
+            "building": building,
+            "day": day,
+            "slots": slots,
+            "fully_free": sorted(fully_free),
+        }
